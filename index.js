@@ -17,7 +17,8 @@ module.exports = function(positions, opts) {
   opts = defaults(opts, {
     cells: undefined,
     regl: false,
-    bias: 0.01,
+	bias: 0.01,
+	maxDist: 1000,
     resolution: 512
   });
 
@@ -172,7 +173,7 @@ module.exports = function(positions, opts) {
       precision highp float;
 
       uniform sampler2D tPosition, tSource, tVertex, tNormal;
-      uniform float count, bias;
+      uniform float count, bias, maxDist;
       uniform vec2 resolution;
       uniform mat4 model;
 
@@ -185,9 +186,11 @@ module.exports = function(positions, opts) {
           vec3 norm = texture2D(tNormal, texel).rgb;
           norm = vec3(model * vec4(norm, 1));
           float z = texture2D(tPosition, INVSQRT3 * vert.xy + 0.5).z;
-          float o = 0.0;
-          if ((vert.z - z) < -bias) {
-              o = 1.0;
+		  float o = 0.0;
+		  float dist = z - vert.z;
+
+          if (dist > bias && dist <= maxDist) {
+			o = 1.0 - ((dist - bias) / (maxDist - bias));
           }
           vec4 src = texture2D(tSource, texel);
           if (dot(norm, vec3(0,0,1)) > 0.0) {
@@ -206,7 +209,8 @@ module.exports = function(positions, opts) {
       tVertex: tVertex,
       tNormal: tNormal,
       count: regl.prop('count'),
-      bias: regl.prop('bias'),
+	  bias: regl.prop('bias'),
+	  maxDist: regl.prop('maxDist'),
       resolution: [vertexTextureRes, vertexTextureRes],
       model: regl.prop('model'),
     },
@@ -253,7 +257,8 @@ module.exports = function(positions, opts) {
       source: source,
       destination: destination,
       count: occlusionCount,
-      bias: opts.bias,
+	  bias: opts.bias,
+	  maxDist: opts.maxDist,
       model: model,
     });
   }
