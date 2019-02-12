@@ -18,7 +18,8 @@ module.exports = function(positions, opts) {
     cells: undefined,
     regl: false,
 	bias: 0.01,
-	resolution: 512
+	resolution: 512,
+	falloffFactor: 1
   });
 
   // Center the mesh on the origin (and make a copy in the process).
@@ -172,7 +173,7 @@ module.exports = function(positions, opts) {
       precision highp float;
 
       uniform sampler2D tPosition, tSource, tVertex, tNormal;
-      uniform float count, bias;
+      uniform float count, bias, falloff;
       uniform vec2 resolution;
       uniform mat4 model;
 
@@ -189,7 +190,7 @@ module.exports = function(positions, opts) {
 		  float dist = z - vert.z - bias;
 
           if (dist > 0.0) {
-			o = 1.0;
+			o = 1.0 / (1.0 + dist * falloff);
 		  }
 		  
           vec4 src = texture2D(tSource, texel);
@@ -210,6 +211,7 @@ module.exports = function(positions, opts) {
       tNormal: tNormal,
       count: regl.prop('count'),
 	  bias: regl.prop('bias'),
+	  falloff: regl.prop('falloff'),
       resolution: [vertexTextureRes, vertexTextureRes],
       model: regl.prop('model'),
     },
@@ -257,6 +259,7 @@ module.exports = function(positions, opts) {
       destination: destination,
       count: occlusionCount,
 	  bias: opts.bias,
+	  falloff: opts.falloffFactor,
 	  maxDist: opts.maxDist,
       model: model,
     });

@@ -55,6 +55,7 @@ async function main() {
     cells: mesh.cells,
 	resolution: 512,
 	bias: 0.02,
+	falloffFactor: 0.1,
     regl: regl,
   });
 
