@@ -54,16 +54,14 @@ async function main() {
   const aoSampler = geoao(mesh.positions, {
     cells: mesh.cells,
 	resolution: 512,
-	bias: 0.015,
-	maxDist: 1.5,
-	falloff: 'quadratic',
+	bias: 0.02,
     regl: regl,
   });
 
   // Sample the ambient occlusion. Every tenth of a second, give a progress update.
   text('Calculating ambient occlusion...');
   await display();
-  const samples = 4096;
+  const samples = 16384;
   let t0 = performance.now();
   let tStart = t0;
   for (let i = 0; i < samples; i++) {
@@ -84,7 +82,10 @@ async function main() {
   // Collect the results of the ambient occluseion. This is a Float32Array of length <number of vertices>.
   text('Collecting ambient occlusion...');
   await display();
-  const ao = aoSampler.report();
+  const ao = aoSampler.report({
+	  contrastFactor: 2.2,
+	  normalize: true
+  });
 
   // Dispose of resources we no longer need.
   aoSampler.dispose();

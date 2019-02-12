@@ -18,9 +18,7 @@ module.exports = function(positions, opts) {
     cells: undefined,
     regl: false,
 	bias: 0.01,
-	maxDist: 1000,
-	falloff: 'linear',	// linear / quadratic / cubic
-    resolution: 512
+	resolution: 512
   });
 
   // Center the mesh on the origin (and make a copy in the process).
@@ -174,7 +172,7 @@ module.exports = function(positions, opts) {
       precision highp float;
 
       uniform sampler2D tPosition, tSource, tVertex, tNormal;
-      uniform float count, bias, maxDist;
+      uniform float count, bias;
       uniform vec2 resolution;
       uniform mat4 model;
 
@@ -188,16 +186,12 @@ module.exports = function(positions, opts) {
           norm = vec3(model * vec4(norm, 1));
           float z = texture2D(tPosition, INVSQRT3 * vert.xy + 0.5).z;
 		  float o = 0.0;
-		  float dist = z - vert.z;
+		  float dist = z - vert.z - bias;
 
-          if (dist > bias && dist <= maxDist) {
-			float nAO = 1.0 - ((dist - bias) / (maxDist - bias));
-			o = ${
-				opts.falloff === 'cubic' ? 'nAO * nAO * nAO' :
-				opts.falloff === 'quadratic' ? 'nAO * nAO' :
-				'nAO'
-			};
-          }
+          if (dist > 0.0) {
+			o = 1.0;
+		  }
+		  
           vec4 src = texture2D(tSource, texel);
           if (dot(norm, vec3(0,0,1)) > 0.0) {
             gl_FragColor = src + vec4(o, 1, 0, 0);
@@ -216,7 +210,6 @@ module.exports = function(positions, opts) {
       tNormal: tNormal,
       count: regl.prop('count'),
 	  bias: regl.prop('bias'),
-	  maxDist: regl.prop('maxDist'),
       resolution: [vertexTextureRes, vertexTextureRes],
       model: regl.prop('model'),
     },
@@ -271,7 +264,14 @@ module.exports = function(positions, opts) {
 
 
   // Return the per-vertex ambient occlusion in a Float32Array of length vertexCount.
-  function report() {
+  function report(opts) {
+	opts = defaults(opts, {
+		normalize: false,
+		contrastFactor: 1
+	});
+
+	opts.contrastFactor = Math.max(opts.contrastFactor, 1);
+
     // Gather the resulting pixels.
     let pixels;
     fboOcclusion[1 - occlusionIndex].use(() => {
@@ -279,12 +279,32 @@ module.exports = function(positions, opts) {
     });
 
     // Format them and return the final product.
-    const result = new Float32Array(vertexCount);
+	const result = new Float32Array(vertexCount);
+
     for (let i = 0; i < vertexCount; i++) {
       const index = i * 4;
-      const total = pixels[index + 1];
-      result[i] = total === 0.0 ? 0.0 : pixels[index + 0]/total;
-    }
+	  const total = pixels[index + 1];
+	  const sample = total === 0.0 ? 0.0 : pixels[index + 0] / total;
+	
+	  result[i] = Math.pow(sample, opts.contrastFactor);
+	}
+	
+	if (opts.normalize) {
+		let min = Infinity;
+		let max = -Infinity;
+		let range = 0;
+	
+		for (let i = 0; i < vertexCount; i++) {
+			if (result[i] > max) max = result[i];
+			if (result[i] < min) min = result[i];	
+		}
+
+		range = max - min;
+
+		for (let i = 0; i < vertexCount; i++) {
+			result[i] = (result[i] - min) / range;
+		}
+	}
 
     return result;
   }
