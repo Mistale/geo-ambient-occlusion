@@ -19,6 +19,7 @@ module.exports = function(positions, opts) {
     regl: false,
 	bias: 0.01,
 	maxDist: 1000,
+	falloff: 'linear',	// linear / quadratic / cubic
     resolution: 512
   });
 
@@ -190,7 +191,12 @@ module.exports = function(positions, opts) {
 		  float dist = z - vert.z;
 
           if (dist > bias && dist <= maxDist) {
-			o = 1.0 - ((dist - bias) / (maxDist - bias));
+			float nAO = 1.0 - ((dist - bias) / (maxDist - bias));
+			o = ${
+				opts.falloff === 'cubic' ? 'nAO * nAO * nAO' :
+				opts.falloff === 'quadratic' ? 'nAO * nAO' :
+				'nAO'
+			};
           }
           vec4 src = texture2D(tSource, texel);
           if (dot(norm, vec3(0,0,1)) > 0.0) {
