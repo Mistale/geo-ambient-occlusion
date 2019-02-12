@@ -55,7 +55,7 @@ async function main() {
     cells: mesh.cells,
 	resolution: 512,
 	bias: 0.02,
-	falloffFactor: 0.1,
+	falloffFactor: 0,
     regl: regl,
   });
 
@@ -84,7 +84,7 @@ async function main() {
   text('Collecting ambient occlusion...');
   await display();
   const ao = aoSampler.report({
-	  contrastFactor: 2.2,
+	  contrastFactor: 2.4,
 	  normalize: true
   });
 
@@ -110,7 +110,7 @@ async function main() {
       precision highp float;
       varying float vOcclusion;
       void main() {
-        gl_FragColor = vec4(0.95 * vec3(1.0 - vOcclusion), 1.0);
+        gl_FragColor = vec4(1.0 * vec3(1.0 - vOcclusion), 1.0);
       }
     `,
     attributes: {
@@ -159,7 +159,7 @@ async function main() {
     const projection = mat4.perspective([], Math.PI/4, canvas.width/canvas.height, 0.1, 1000);
 
     regl.clear({
-      color: [1,1,1,1],
+      color: [0.2,0.2,0.2,1],
       depth: 1,
     });
 
