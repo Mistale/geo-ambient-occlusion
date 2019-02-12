@@ -5,10 +5,22 @@ const REGL = require('regl');
 const mat4 = require('gl-matrix').mat4;
 const Trackball = require('trackball-controller');
 const center = require('geo-center');
-const mesh = require('snowden');
+// const mesh = require('snowden');
 
 const geoao = require('../index.js');
 
+const mesh = require('./pirate_ship.json');
+mesh.cells = [];
+
+// Convert indices in JSON-models from flat index-array to triplets
+// and use as cells.
+for (let i = 0; i < mesh.indices.length; i += 3) {
+	mesh.cells.push([
+		mesh.indices[i],
+		mesh.indices[i + 1],
+		mesh.indices[i + 2]
+	]);
+}
 
 // Entry point.
 main();
@@ -41,7 +53,10 @@ async function main() {
   await display();
   const aoSampler = geoao(mesh.positions, {
     cells: mesh.cells,
-    resolution: 512,
+	resolution: 512,
+	bias: 0.015,
+	maxDist: 1.5,
+	falloff: 'quadratic',
     regl: regl,
   });
 
